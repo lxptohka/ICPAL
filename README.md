@@ -36,7 +36,7 @@ This repository contains the code and resources for a demonstration project desi
 
 ### Prerequisites
 - Python 3.8 or higher
-- Required Python libraries (can be installed via `requirements.txt` if provided, or specify them here).
+- Required Python libraries (can be installed via requirements.txt).
 
 ### Setup
 1. Clone this repository:
