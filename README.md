@@ -1,13 +1,13 @@
 # An Interactive Co-location Pattern Mining System Based on Active Learning
 
 ## Overview
-This repository contains the code and resources for a demonstration project designed to showcase various functionalities such as spatial data distribution visualization, frequent pattern mining, and interactive user interfaces.
+This repository contains the code and resources for a demonstration project designed to assist users in discovering co-location patterns of specific interests.
 
 ## Repository Structure
 
 ### Folders
 - **data/**
-  - Contains test dataset used for the demo.
+  - Contains a test dataset.
 
 - **icons/**
   - Contains icons used in the demo interface.
