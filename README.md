@@ -41,7 +41,7 @@ This repository contains the code and resources for a demonstration project desi
 ### Setup
 1. Clone this repository:
    ```bash
-   git clone <repository_url>
+   git clone git@github.com:lxptohka/ICPAL.git
    ```
 
 2. Navigate to the project directory:
@@ -53,8 +53,6 @@ This repository contains the code and resources for a demonstration project desi
    ```bash
    pip install -r requirements.txt
    ```
-
-4. Ensure the `data/` folder contains the necessary datasets and the `icons/` folder contains the required icons.
 
 ### Running the Demo
 Execute the main program:
