@@ -11,9 +11,9 @@ R = 10  # 设最小邻近关系的距离为10
 
 def drawData(E, R):
     """
-    可视化函数，方便查看数据之间的关系
-    :param E: 空间实例集
-    :param R: 空间邻近关系
+    Visualization function to help observe relationships between data points
+    :param E: Set of spatial instances
+    :param R: Spatial neighborhood relationship (distance threshold)
     """
     values = [x[2] for x in E]
     x = np.array(values)[:, 0]
@@ -30,12 +30,13 @@ def drawData(E, R):
     plt.show()
 
 
+
 def getCountET(E, ET):
     """
-    获取每个特征类型的实例出现次数
-    :param E: 空间实例集
-    :param ET: 空间特征集
-    :return: 各个特征类型的实例出现次数
+    Get the occurrence count of instances for each feature type
+    :param E: Set of spatial instances
+    :param ET: Set of spatial features
+    :return: Occurrence count of instances for each feature type
     """
     count = {}
     for featureType in ET:
@@ -47,25 +48,27 @@ def getCountET(E, ET):
     return count
 
 
+
 def getInstance(E, featureType, instanceID):
     """
-    根据特征类型和实例 id 在实例集中查询对应的实例数据
-    :param featureType: 实例特征类型
-    :param instanceID: 实例id
-    :return: 实例数据
+    Query the instance data from the instance set based on feature type and instance ID
+    :param featureType: Feature type of the instance
+    :param instanceID: ID of the instance
+    :return: Instance data
     """
     for item in E:
         if item[0] == featureType and item[1] == instanceID:
             return item
 
 
+
 def isNeighbor(instance1, instance2, R):
     """
-    判断两个实例之间是否相邻
-    :param instance1: 第一个实例
-    :param instance2: 第二个实例
-    :param R: 空间邻近关系
-    :return: bool值，表示这两个实例是否满足邻近关系
+    Determine whether two instances are neighbors
+    :param instance1: The first instance
+    :param instance2: The second instance
+    :param R: Spatial neighborhood threshold
+    :return: Boolean value indicating whether the two instances satisfy the neighborhood relationship
     """
     distance = math.sqrt(math.pow(instance1[2][0] - instance2[2][0], 2)
                          + math.pow(instance1[2][1] - instance2[2][1], 2))
@@ -77,26 +80,27 @@ def isNeighbor(instance1, instance2, R):
 
 def calParticipationIndex(Pattern, count_ET):
     """
-    # 计算候选模式的参与度
-    :param Pattern: 候选模式
-    :param count_ET: 各个特征类型的实例出现次数
-    :return: 候选模式的参与度
+    Calculate the participation index of a candidate pattern
+    :param Pattern: Candidate pattern
+    :param count_ET: Occurrence count of instances for each feature type
+    :return: Participation index of the candidate pattern
     """
-    participation_index = 1  # 设置一个最大参与率
+    participation_index = 1  # Initialize with the maximum participation index
     for featureType in Pattern.keys():
         participation_ratio = Pattern[featureType] / count_ET[featureType]
-        if participation_ratio < participation_index:  # 返回最低参与率，即参与度
+        if participation_ratio < participation_index:  # Return the minimum participation ratio as the participation index
             participation_index = participation_ratio
 
     return participation_index
 
 
+
 def createT2(E, R):
     """
-    根据空间实例集 E 和空间邻近关系 R 生成2阶表实例
-    :param E: 空间实例集
-    :param R: 空间邻近关系
-    :return: 2阶表实例
+    Generate 2-order table instances based on the spatial instance set E and spatial neighborhood threshold R
+    :param E: Set of spatial instances
+    :param R: Spatial neighborhood threshold
+    :return: 2-order table instances
     """
     T2 = []
     for i in range(len(E) - 1):
@@ -113,9 +117,9 @@ def createT2(E, R):
 
 def createC2(ET):
     """
-    生成二阶候选模式
-    :param ET: 空间特征集
-    :return: 二阶候选模式
+    Generate 2-order candidate patterns
+    :param ET: Set of spatial features
+    :return: 2-order candidate patterns
     """
     ET_len = len(ET)
     C2 = []
@@ -126,11 +130,12 @@ def createC2(ET):
     return C2
 
 
+
 def table2Tdic(T):
     """
-    将表实例如 [A1,B2] 转换为表实例字典 { A,B : [A1,B2] }
-    :param T:  表实例集
-    :return: 表实例字典
+    Convert table instances like [A1, B2] into a table instance dictionary { 'A,B' : [[A1, B2]] }
+    :param T: Set of table instances
+    :return: Table instance dictionary
     """
     table_instance = {}
     for row in T:
@@ -153,10 +158,10 @@ def table2Tdic(T):
 
 def T2Tk(T, E):
     """
-    由 k-1 阶满足参与度的表实例集生成 k 阶表实例集
-    :param T: k-1 阶满足参与度的表实例集
-    :param E: 数据集
-    :return: k 阶表实例集
+    Generate k-order table instances from k-1-order table instances that satisfy the participation index
+    :param T: k-1-order table instances that satisfy the participation index
+    :param E: Dataset
+    :return: k-order table instances
     """
     T_list = []
     keys = list(T.keys())
@@ -190,11 +195,12 @@ def T2Tk(T, E):
 
 def Tk2Pk(T_dic, count_ET, min_prev):
     """
-    由 k 阶表实例集和 k 阶候选集以及最小参与度生成 k 阶频繁项集和满足参与度的表实例集
-    :param T_dic: k 阶表实例集
-    :param count_ET: 各个特征类型的实例出现次数
-    :param min_prev: 最小参与度阈值
-    :return: k 阶频繁项集和满足参与度的表实例集
+    Generate k-order frequent itemsets and table instances that satisfy the participation index
+    from k-order table instances, k-order candidates, and the minimum participation threshold
+    :param T_dic: k-order table instances
+    :param count_ET: Occurrence count of instances for each feature type
+    :param min_prev: Minimum participation threshold
+    :return: k-order frequent itemsets and table instances that satisfy the participation index
     """
     Pk = []
     prevalent_T = {}
@@ -215,9 +221,9 @@ def Tk2Pk(T_dic, count_ET, min_prev):
 
 def P2Ck(P):
     """
-    由k阶频繁模式 P,生成 k+1 阶候选模式 C
-    :param P: k阶频繁模式
-    :return: k+1 阶候选模式 C
+    Generate (k+1)-order candidate patterns C from k-order frequent patterns P
+    :param P: k-order frequent patterns
+    :return: (k+1)-order candidate patterns C
     """
     candidate = []
     p_len = len(P)
@@ -233,9 +239,9 @@ def P2Ck(P):
 
 def get_prevalent_patterns(filename):
     """
-    获取数据集的频繁模式
-    :param filename: 数据文件
-    :return: 频繁模式集
+    Obtain frequent patterns from the dataset
+    :param filename: Data file
+    :return: Set of frequent patterns
     """
     E = []
     with open(filename, 'r', encoding='utf-8') as csvfile:
@@ -294,57 +300,3 @@ def get_prevalent_patterns(filename):
     # print(prevalentPatterns)
 
     return prevalentPatterns
-
-
-# if __name__ == '__main__':
-#     E = []
-#     with open('data.csv', 'r', encoding='utf-8') as csvfile:
-#         csvreader = csv.reader(csvfile)
-#         for row in csvreader:
-#             if len(row[0]) > 1:
-#                 continue
-#             temp = [row[0], int(row[1]), (float(row[2]), float(row[3]))]
-#             E.append(temp)
-#     del E[0]
-#
-#     # drawData(E, R)
-#     countET = getCountET(E, ET)
-#     C2 = createC2(ET)
-#     # print("C2")
-#     # print(C2)
-#     T2 = createT2(E, R)
-#     # print("T2")
-#     # for key in T2.keys():
-#     #     print(key, T2[key])
-#     T, P = Tk2Pk(T2, countET, min_prev)
-#     print("P2")
-#     print(P)
-#
-#     prevalentPatterns = []
-#     for item in P:
-#         prevalentPatterns.append(item)
-#     k = 2
-#     while True:
-#         C = P2Ck(P)
-#         if len(C) == 0:
-#             break
-#         # print("C{}".format(k+1))
-#         # print(C)
-#
-#         T_C = T2Tk(T, E)
-#         # if bool(T_C):
-#         #     print("T{}".format(k+1))
-#         #     for i in T_C:
-#         #         print(i, T_C[i])
-#
-#         T, P = Tk2Pk(T_C, countET, min_prev)
-#         if bool(P):
-#             for item in P:
-#                 prevalentPatterns.append(item)
-#             print("P{}".format(k+1))
-#             print(P)
-#
-#         k += 1
-#     print("all co-locations")
-#     print(prevalentPatterns)
-
