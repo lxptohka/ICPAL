@@ -6,7 +6,6 @@ from PyQt5.QtWidgets import (
 import sys
 
 
-# 捏特征
 letter_to_feature = {'A': 'Supermarket', 'B': 'Milk Tea Shop', 'C': 'Pharmacy', 'D': 'Restaurant',
                      'E': 'Clothing Store', 'F': 'Antique Shop', 'G': 'Barber Shop', 'H': 'Electronic Store',
                      'I': 'Gift Shop', 'J': 'Theme Park', 'K': 'Fruit Shop', 'L': 'Cafe', 'M': 'Optical Shop',
@@ -15,7 +14,7 @@ letter_to_feature = {'A': 'Supermarket', 'B': 'Milk Tea Shop', 'C': 'Pharmacy', 
 
 
 class CoLocationPatternWidget(QWidget):
-    # 自定义信号，发送兴趣标签列表
+    # Custom signal to send the list of interest labels
     interestSubmitted = pyqtSignal(list)
 
     def __init__(self, patterns):
@@ -23,21 +22,21 @@ class CoLocationPatternWidget(QWidget):
         self.patterns = patterns
         self.initUI()
 
-        # 标签列表
+        # List of labels
         self.interest_labels = None
 
     def initUI(self):
-        # 设置窗口标题和大小
+        # Set window title and size
         self.setWindowTitle("Interaction")
         self.resize(1280, 720)
 
-        # 设置窗口的icon
+        # Set the window icon
         self.setWindowIcon(QIcon("icons/interaction_icon.png"))
 
-        # 主布局
+        # Main layout
         main_layout = QVBoxLayout()
 
-        # 创建标题行
+        # Create header row
         header_layout = QHBoxLayout()
         label_title = QLabel("  co-location patterns")
         label_title.setStyleSheet("font-size: 20px")
@@ -48,19 +47,19 @@ class CoLocationPatternWidget(QWidget):
         header_layout.addWidget(label_interest)
         main_layout.addLayout(header_layout)
 
-        # 创建样本布局
+        # Create samples layout
         samples_layout = QVBoxLayout()
         samples_widget = QWidget()
         samples_widget.setLayout(samples_layout)
         main_layout.addWidget(samples_widget)
         main_layout.setStretchFactor(samples_widget, 1)
 
-        # 为每个模式创建一行
+        # Create a row for each pattern
         self.checkboxes = []
         for pattern in self.patterns:
             row_layout = QHBoxLayout()
 
-            # 显示模式内容
+            # Display pattern content
             label = QLabel()
             text = "{"
             for index in range(len(pattern)):
@@ -73,24 +72,24 @@ class CoLocationPatternWidget(QWidget):
             row_layout.addWidget(label)
             row_layout.setStretchFactor(label, 1)
 
-            # 添加空格
+            # Add spacing
             row_layout.addSpacerItem(QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum))
 
-            # 创建复选框
+            # Create checkbox
             checkbox = QCheckBox()
             row_layout.addWidget(checkbox)
-            row_layout.addSpacerItem(QSpacerItem(20, 20, QSizePolicy.Expanding, QSizePolicy.Minimum))  # 添加额外空格
+            row_layout.addSpacerItem(QSpacerItem(20, 20, QSizePolicy.Expanding, QSizePolicy.Minimum))  # Add extra spacing
 
-            # 将复选框添加到列表以便后续访问
+            # Add checkbox to the list for later access
             self.checkboxes.append(checkbox)
             samples_layout.addLayout(row_layout)
 
-        # 创建提交按钮
+        # Create submit button
         submit_button = QPushButton("Submit")
         submit_button.clicked.connect(self.submit_interest)
         submit_button.setFixedSize(150, 40)
 
-        # 将按钮居中
+        # Center the button
         button_layout = QHBoxLayout()
         button_layout.addSpacerItem(QSpacerItem(20, 20, QSizePolicy.Expanding, QSizePolicy.Minimum))
         button_layout.addWidget(submit_button)
@@ -98,30 +97,13 @@ class CoLocationPatternWidget(QWidget):
 
         main_layout.addLayout(button_layout)
 
-        # 设置布局
+        # Set the layout
         self.setLayout(main_layout)
 
     def submit_interest(self):
-        # 提交用户的选择
+        # Submit the user's selections
         self.interest_labels = [1 if checkbox.isChecked() else 0 for checkbox in self.checkboxes]
-        # 发射自定义信号，将兴趣标签列表作为参数传递
+        # Emit custom signal, passing the list of interest labels as a parameter
         self.interestSubmitted.emit(self.interest_labels)
-        # 关闭窗口
+        # Close the window
         self.close()
-
-
-# # 主程序
-# if __name__ == "__main__":
-#     app = QApplication(sys.argv)
-#
-#     # 示例数据
-#     patterns = [
-#         ["F", "R"], ["E", "S"], ["B", "S", "T"], ["J", "O"],
-#         ["A", "L", "M"], ["L", "O", "P"], ["K", "N"],
-#         ["I", "N"], ["M", "R", "S"], ["B", "K", "L"],["B", "K", "L"],
-#         ["B", "K", "L"], ["B", "K", "L"], ["B", "K", "L"], ["B", "K", "L"]
-#     ]
-#
-#     window = CoLocationPatternWidget(patterns)
-#     window.show()
-#     sys.exit(app.exec_())
