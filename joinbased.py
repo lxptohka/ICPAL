@@ -5,8 +5,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import csv
 
-min_prev = 0.3  # 最小参与度
-R = 10  # 设最小邻近关系的距离为10
+min_prev = 0.3
+R = 10
 
 
 def drawData(E, R):
@@ -300,3 +300,4 @@ def get_prevalent_patterns(filename):
     # print(prevalentPatterns)
 
     return prevalentPatterns
+
