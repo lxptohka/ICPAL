@@ -11,14 +11,22 @@ from PyQt5.QtWidgets import (
 )
 
 import random
+
+from pandas.core.interchange.from_dataframe import primitive_column_to_ndarray
 from sklearn import svm
 import math
+import numpy as np
+from sklearn.model_selection import train_test_split
+import torch
+import torch.optim as optim
+import torch.nn.functional as F
 
 from joinbased import get_prevalent_patterns
 import data_distribution
 import float_input_dialog
 import document
 from interaction_window import CoLocationPatternWidget
+from prototypical_network import PrototypicalNetwork
 
 
 letter_to_feature = {'A': 'Supermarket', 'B': 'Milk Tea Shop', 'C': 'Pharmacy', 'D': 'Restaurant',
@@ -125,6 +133,36 @@ def sample_and_remove(data, k):
     return selected
 
 
+def split_patterns_with_labels(patterns, labels, test_size=0.25, random_state=None):
+    """
+    Split patterns and their corresponding labels into training and testing sets.
+
+    Args:
+        patterns (list): 2D list, each sublist represents a pattern.
+        labels (list): 1D list, each element represents the label of the corresponding pattern.
+        test_size (float): Proportion of the test set, default is 0.25 (i.e., 3:1 ratio).
+        random_state (int): Random seed for reproducible results.
+
+    Returns:
+        train_patterns, test_patterns, train_labels, test_labels
+    """
+    # Convert to numpy arrays for processing
+    patterns_array = np.array(patterns, dtype=np.float32)
+    labels_array = np.array(labels, dtype=np.int64)
+
+    # Use sklearn's train_test_split to split the data
+    train_pat, test_pat, train_lab, test_lab = train_test_split(
+        patterns_array,
+        labels_array,
+        test_size=test_size,
+        random_state=random_state,
+        stratify=labels_array  # Preserve label distribution
+    )
+
+    # Convert back to list form for output
+    return train_pat, test_pat, train_lab, test_lab
+
+
 class Demo(QMainWindow):
     """Main interface for the ICPAL demo application."""
 
@@ -157,7 +195,7 @@ class Demo(QMainWindow):
         self.map = {}
 
         # Classifier used for prediction during interactive learning
-        self.classifier = svm.SVC(kernel='linear', C=1.0, random_state=1, probability=True)
+        self.classifier = None
 
         # Default entropy threshold
         self.entropy_threshold = 0.9
@@ -167,6 +205,8 @@ class Demo(QMainWindow):
 
         # Counter for the number of interaction rounds
         self.interact_times = 0
+
+        self.prototypes = None
 
         # Initialize all UI components
         self.initUI()
@@ -438,7 +478,7 @@ class Demo(QMainWindow):
 
         # Display the frequent patterns
         text = ""
-        for prevalent_pattern in self.prevalent_patterns:
+        for prevalent_pattern in self.sorted_prevalent_patterns:
             text += "{"
             for index in range(len(prevalent_pattern)):
                 if index == len(prevalent_pattern) - 1:
@@ -459,6 +499,7 @@ class Demo(QMainWindow):
 
         # Get the number of features appearing in frequent patterns and the mapping to feature vector positions
         self.get_featureNum_and_Map()
+        self.classifier = PrototypicalNetwork(input_size=self.featureNum, embedding_size=64, num_classes=2)
         # Shuffle the frequent patterns randomly
         random.shuffle(self.prevalent_patterns)
 
@@ -531,9 +572,9 @@ class Demo(QMainWindow):
         self.samples = []
         self.results = []
 
-        # Train SVM classifier with the labeled sample set
+        # Train classifier with the labeled sample set
         self.train()
-        # Use the trained SVM to select new samples and update the labeled sample set
+        # Use the trained classifier to select new samples and update the labeled sample set
         self.select_samples()
 
         if len(self.samples) > 0:
@@ -546,11 +587,15 @@ class Demo(QMainWindow):
             else:
                 self.progressText.append("Executing the {}th interaction...".format(self.interact_times))
 
-            # Use the trained SVM classifier to predict all frequent patterns and display patterns the user may be interested in
+            # Use the trained classifier to predict all frequent patterns and display patterns the user may be interested in
             x_prevalent = patterns2code(self.sorted_prevalent_patterns, self.featureNum, self.map)
+            x_embeddings = self.classifier(torch.tensor(x_prevalent, dtype=torch.float32), None, None, None, 'cal_only')
+            distances = torch.cdist(x_embeddings, self.prototypes)
+            neg_distances = -distances
+            pattern_probabilities = F.softmax(neg_distances, dim=1)
             interested_pattern = ""
             for index, x in enumerate(x_prevalent):
-                if self.classifier.predict([x]) == [1]:
+                if pattern_probabilities[index][1] >= 0.5:
                     interested_pattern += "{"
                     for i in range(len(self.sorted_prevalent_patterns[index])):
                         if i != len(self.sorted_prevalent_patterns[index]) - 1:
@@ -568,9 +613,13 @@ class Demo(QMainWindow):
         else:
             # Use the trained SVM classifier to predict all frequent patterns and display patterns the user may be interested in
             x_prevalent = patterns2code(self.sorted_prevalent_patterns, self.featureNum, self.map)
+            x_embeddings = self.classifier(torch.tensor(x_prevalent, dtype=torch.float32), None, None, None, 'cal_only')
+            distances = torch.cdist(x_embeddings, self.prototypes)
+            neg_distances = -distances
+            pattern_probabilities = F.softmax(neg_distances, dim=1)
             interested_pattern = ""
             for index, x in enumerate(x_prevalent):
-                if self.classifier.predict([x]) == [1]:
+                if pattern_probabilities[index][1] >= 0.5:
                     interested_pattern += "{"
                     for i in range(len(self.sorted_prevalent_patterns[index])):
                         if i != len(self.sorted_prevalent_patterns[index]) - 1:
@@ -584,23 +633,36 @@ class Demo(QMainWindow):
             self.patternText.setFont(font)
 
     def train(self):
-        """Train the SVM classifier using the labeled sample set"""
+        """Train the classifier using the labeled sample set"""
         # Encode the patterns
         x_train = patterns2code(self.patterns, self.featureNum, self.map)
         y_train = self.labels
 
+        train_patterns, test_patterns, train_labels, test_labels = split_patterns_with_labels(x_train,
+                                                                                              y_train)
+
         # Train the classifier
-        if len(x_train) == len(y_train):
-            self.classifier.fit(x_train, y_train)
+        optimizer = optim.Adam(self.classifier.parameters(), lr=0.0001)
+        epochs = len(x_train)
+        for i in range(epochs):
+            optimizer.zero_grad()
+            loss, self.prototypes = self.classifier(torch.from_numpy(train_patterns), torch.from_numpy(train_labels),
+                                                    torch.from_numpy(test_patterns), torch.from_numpy(test_labels),
+                                                    'train')
+            loss.backward()
+            optimizer.step()
+
 
     def select_samples(self):
         """Use the trained SVM to select new samples and update the labeled sample set"""
         x_prevalent = patterns2code(self.prevalent_patterns, self.featureNum, self.map)
-        # Use predict_proba() to get class probabilities for candidate frequent patterns
-        probabilities = self.classifier.predict_proba(x_prevalent)
+        x_embeddings = self.classifier(torch.tensor(x_prevalent, dtype=torch.float32), None, None, None, 'cal_only')
+        distances = torch.cdist(x_embeddings, self.prototypes)
+        neg_distances = -distances
+        pattern_probabilities = F.softmax(neg_distances, dim=1)
 
         # Calculate the information entropy for each sample and save it in a list
-        entropies = [calculate_entropy(prob) for prob in probabilities]
+        entropies = [calculate_entropy(prob) for prob in pattern_probabilities]
 
         # Reduce the entropy threshold each time to increase selection stringency
         self.entropy_threshold = self.entropy_threshold - 0.05
